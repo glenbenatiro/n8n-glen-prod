@@ -1,0 +1,45 @@
+# traefik.yml
+
+# Enable the API and Dashboard
+api:
+  dashboard: true
+
+# Global settings
+global:
+  checkNewVersion: true
+  sendAnonymousUsage: false
+
+# Logs for Traefik service itself
+log:
+  level: INFO
+
+# Define the network entrypoints for Traefik
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+# Configure how Traefik connects to other services (the "Providers")
+providers:
+  docker:
+    watch: true
+    exposedByDefault: false
+
+# Configure the Certificate Resolver for Let's Encrypt
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "glenbenatiro@gmail.com"
+      storage: "/etc/traefik/acme.json"
+      httpChallenge:
+        entryPoint: web

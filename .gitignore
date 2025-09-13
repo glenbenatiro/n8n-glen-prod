@@ -1,0 +1,7 @@
+.env
+traefik-data/acme.json
+
+*.log
+*.tmp
+node_modules/
+EOF
