@@ -1,4 +1,5 @@
 services:
+
   # --- 1. Reverse Proxy Service (Traefik) ---
   traefik:
     image: traefik:v3.5.2
@@ -18,11 +19,16 @@ services:
     command:
       - "--log.level=INFO"
     labels:
+      # Enable Traefik on this container
       - "traefik.enable=true"
+
+      # Router: Traefik Dashboard (HTTPS)
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.${DOMAIN_NAME}`)"
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
       - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
+
+      # Middleware: Basic Auth for Dashboard (user:pass from .env)
       - "traefik.http.middlewares.traefik-auth.basicauth.users=${BASIC_AUTH_CREDENTIALS}"
       - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
     logging:
@@ -30,6 +36,8 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+
 
   # --- 2. Database Service (PostgreSQL) ---
   postgres:
@@ -56,6 +64,8 @@ services:
         max-size: "10m"
         max-file: "5"
 
+
+
   # --- 3. Queue Service (Redis) ---
   redis:
     image: redis:8.2.0
@@ -74,6 +84,8 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+
 
   # --- 4. n8n Main/Web Service (UI, API, Webhooks) ---
   n8n-web:
@@ -110,31 +122,44 @@ services:
       - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
       - N8N_BLOCK_ENV_ACCESS_IN_NODE=true
       - N8N_RUNNERS_ENABLED=true
+      - N8N_PROXY_HOPS=1
     volumes:
       - n8n_data:/home/node/.n8n
     labels:
+      # Enable Traefik on this container and target the correct Docker network
       - "traefik.enable=true"
       - "traefik.docker.network=n8n-stack_web"
+
+      # Router: n8n Editor UI (HTTPS)
       - "traefik.http.routers.n8n-editor.rule=Host(`n8n.${DOMAIN_NAME}`)"
       - "traefik.http.routers.n8n-editor.entrypoints=websecure"
       - "traefik.http.routers.n8n-editor.tls.certresolver=letsencrypt"
       - "traefik.http.routers.n8n-editor.service=n8n-service"
+      - "traefik.http.routers.n8n-editor.middlewares=sec-headers" # <-- CHANGED (Removed 'basic-auth')
+
+      # Router: n8n Webhooks (HTTPS)
       - "traefik.http.routers.n8n-hooks.rule=Host(`hooks.n8n.${DOMAIN_NAME}`)"
       - "traefik.http.routers.n8n-hooks.entrypoints=websecure"
       - "traefik.http.routers.n8n-hooks.tls.certresolver=letsencrypt"
       - "traefik.http.routers.n8n-hooks.service=n8n-service"
+      - "traefik.http.routers.n8n-hooks.middlewares=sec-headers"
+
+      # Service: map router(s) to internal container port
       - "traefik.http.services.n8n-service.loadbalancer.server.port=5678"
-      - "traefik.http.routers.n8n-editor.middlewares=sec-headers" # <-- CHANGED (Removed 'basic-auth')
-      # - "traefik.http.middlewares.basic-auth.basicauth.users=${BASIC_AUTH_CREDENTIALS}" # <-- DELETED (This line is no longer needed)
+
+      # Middlewares: security headers for both routers
       - "traefik.http.middlewares.sec-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.sec-headers.headers.sslRedirect=true"
       - "traefik.http.middlewares.sec-headers.headers.contentTypeNosniff=true"
-      - "traefik.http.routers.n8n-hooks.middlewares=sec-headers"
+
+      # - "traefik.http.middlewares.basic-auth.basicauth.users=${BASIC_AUTH_CREDENTIALS}" # <-- DELETED (This line is no longer needed)
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "5"
+
+
 
   # --- 5. n8n Worker Service (Executions) ---
   n8n-worker:
@@ -173,6 +198,8 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+
+
 
 # --- Top-Level Networks and Volumes Definitions ---
 networks:
