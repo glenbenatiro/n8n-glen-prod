@@ -148,7 +148,7 @@ services:
       - "traefik.http.services.n8n-service.loadbalancer.server.port=5678"
 
       # Middlewares: security headers for both routers
-      - "traefik.http.middlewares.sec-headers.headers.frameDeny=true"
+      #- "traefik.http.middlewares.sec-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.sec-headers.headers.sslRedirect=true"
       - "traefik.http.middlewares.sec-headers.headers.contentTypeNosniff=true"
 
